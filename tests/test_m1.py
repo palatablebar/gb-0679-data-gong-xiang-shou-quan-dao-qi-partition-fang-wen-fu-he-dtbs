@@ -15,6 +15,12 @@ def test_bad_columns_real_sample(sample):
 def test_duplicate_conflict_real_sample(sample):
     "TRAP-14"
     assert any(r["reason"]=="DUPLICATE_CONFLICT" for r in evaluate(sample)["quarantine"])
+def test_duplicate_conflict_keeps_basis(sample):
+    "TRAP-14 冲突原行保留取舍依据：首条行号、差异字段、所属事件"
+    r=evaluate(sample)
+    q=[x for x in r["quarantine"] if x["reason"]=="DUPLICATE_CONFLICT"][0]
+    assert q["conflict_of"]=="00001" and q["adopted_line"]==r["rows"][0]["_line"]
+    assert "principal" in q["diff_fields"] and "以首条" in q["detail"]
 def test_identifier_preserved_real_sample(sample):
     "TRAP-08"
     r=evaluate(sample)["rows"][0];assert r[COLUMNS[0]].startswith("00")

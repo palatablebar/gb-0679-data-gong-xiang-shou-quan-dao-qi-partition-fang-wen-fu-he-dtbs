@@ -23,7 +23,7 @@
 | TRAP-03 | 带引号换行 | 拆成两条 | csv逻辑行 | `app/modules/m1_accesses/rules.py` | `tests/test_m1.py::test_quoted_newline_is_one_record` |
 | TRAP-05 | 列数不匹配 | 静默错列 | 隔离原行 | `app/modules/m1_accesses/rules.py` | `tests/test_m1.py::test_bad_columns_real_sample` |
 | TRAP-08 | 前导零ID | 编码变形 | 全程字符串 | `app/modules/m1_accesses/rules.py` | `tests/test_m1.py::test_identifier_preserved_real_sample` |
-| TRAP-14 | 重复键冲突 | 后写覆盖 | 保留首条并隔离冲突行 | `app/modules/m1_accesses/rules.py` | `tests/test_m1.py::test_duplicate_conflict_real_sample` |
+| TRAP-14 | 重复键冲突 | 后写覆盖 | 首条定事实，冲突原行留证并记取舍依据 | `app/modules/m1_accesses/rules.py`、`app/modules/m6_audit/rules.py` | `tests/test_m1.py::test_duplicate_conflict_keeps_basis`、`tests/test_m6.py::test_conflict_evidence_attached_with_basis` |
 | TRAP-18 | 空态三态 | 一律成功 | 分别错误码 | `app/modules/m1_accesses/rules.py` | `tests/test_m1.py::test_three_empty_states` |
 | TRAP-26 | 旧版本提交 | 覆盖新结果 | 版本条件更新 | `app/store.py` | `tests/test_e2e.py::test_stale_review_409` |
 | TRAP-07 | 上游结果空值 | 误报拒绝 | 隔离缺失 | `app/values.py` | `tests/test_m3.py::test_real_missing_decision_not_zero` |
@@ -33,6 +33,8 @@
 ## 对账规则
 
 输入原始逻辑行=最终采纳来源行+隔离来源行+重复行+空白行+分段表头。派生记录用_sources保存完整来源，因此分组不丢行。业务预期合计与上游申报合计之差等于逐行差异之和。结果按输入摘要、规则版本及参数产生唯一批次，事务写入；同源重跑只复用已有批次。
+
+同一事件号只形成一条对账结论：按首条确定事实，不整组作废（整组作废会让该事件号没有结论、来源行失去对账对象）。后到冲突原行保留原值转入隔离留证，记录所属事件、首条行号、差异字段与"以首条为准"的取舍依据；对账阶段把每条冲突原行对照本事件唯一结论复核，标出越权放行证据或误拦截证据，挂到结论行conflict_evidence并汇总为conflict_review。审计页面与证据导出读同一份conflict_review，结论一致。越权放行与误拦截逐条保留、分别计数，不用总数抵消。
 
 ## 已知不覆盖
 

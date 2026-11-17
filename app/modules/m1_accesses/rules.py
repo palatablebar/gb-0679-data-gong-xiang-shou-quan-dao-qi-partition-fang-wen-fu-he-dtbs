@@ -27,7 +27,9 @@ def evaluate(raw,context=None):
             if key in seen:
                 previous=seen[key]
                 if cells==previous["_raw"]: duplicate+=1
-                else: bad.append(reject(row,"DUPLICATE_CONFLICT","同键不同值"))
+                else:
+                    diff=[name for name,old,new in zip(header,previous["_raw"],cells) if old!=new]
+                    bad.append(reject(row,"DUPLICATE_CONFLICT",f"同键不同值：{','.join(diff)} 与首条(行{previous['_line']})不一致；结论以首条为准，本行留证",conflict_of=key,adopted_line=previous["_line"],diff_fields=diff))
                 continue
             seen[key]=row;rows.append(row)
     except csv.Error: raise DomainError("BAD_CSV","引号未闭合或文件损坏")
